@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>오늘 저녁 뭐 먹지?</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  /* 레이아웃: 가운데 한 줄 모바일 카드, 최대 폭 480px */
+  :root {
+    --bg: #E8F5E9;
+    --main: #2E7D32;
+    --main-dark: #1B5E20;
+    --main-soft: #C8E6C9;
+    --on-main: #FFFFFF;
+    --card: #FFFFFF;
+    --text: #263238;
+    --sub: #5B7266;
+    --chip: #EEF3EF;
+    --good: #43A047;
+    --normal: #F9A825;
+    --normal-text: #3E2723;
+    --caution: #EF6C00;
+    --shadow: rgba(27, 94, 32, 0.12);
+    --font: "Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #10241A;
+      --main: #66BB6A;
+      --main-dark: #81C784;
+      --main-soft: #1E3A28;
+      --on-main: #0B1A11;
+      --card: #183324;
+      --text: #E4F0E6;
+      --sub: #A3BDAA;
+      --chip: #22412F;
+      --shadow: rgba(0, 0, 0, 0.35);
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #10241A;
+    --main: #66BB6A;
+    --main-dark: #81C784;
+    --main-soft: #1E3A28;
+    --on-main: #0B1A11;
+    --card: #183324;
+    --text: #E4F0E6;
+    --sub: #A3BDAA;
+    --chip: #22412F;
+    --shadow: rgba(0, 0, 0, 0.35);
+    color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: var(--font);
+    font-size: 16px;
+    background: var(--bg);
+    color: var(--text);
+    overflow-x: hidden;
+  }
+  .wrap {
+    max-width: 480px;
+    margin: 0 auto;
+    padding-block: 32px 28px;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  header { text-align: center; }
+  h1 {
+    margin: 0;
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--main);
+    text-wrap: balance;
+  }
+  header p { margin: 6px 0 0; color: var(--sub); }
+
+  button {
+    font-family: inherit;
+    font-size: 17px;
+    font-weight: 700;
+    min-height: 52px;
+    border-radius: 999px;
+    border: none;
+    cursor: pointer;
+    transition: background 0.15s, transform 0.1s;
+  }
+  button:active { transform: scale(0.97); }
+  button:disabled { opacity: 0.6; cursor: default; }
+  button:focus-visible { outline: 3px solid var(--main-dark); outline-offset: 3px; }
+
+  .draw-btn {
+    width: 100%;
+    min-height: 64px;
+    font-size: 20px;
+    background: var(--main);
+    color: var(--on-main);
+    box-shadow: 0 4px 12px var(--shadow);
+  }
+  .draw-btn:hover:not(:disabled) { background: var(--main-dark); }
+
+  .card {
+    background: var(--card);
+    border-radius: 24px;
+    box-shadow: 0 6px 20px var(--shadow);
+    padding: 28px 20px;
+    text-align: center;
+    min-height: 280px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+  }
+  .guide { margin: 0; color: var(--sub); line-height: 1.6; }
+  .emoji { font-size: 88px; line-height: 1.1; }
+  .name { font-size: 26px; font-weight: 700; }
+  .desc { margin: 0; color: var(--sub); line-height: 1.6; max-width: 32ch; }
+  .info { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 6px; }
+  .kcal, .badge {
+    padding: 6px 14px;
+    border-radius: 999px;
+    font-size: 15px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+  .kcal { background: var(--chip); color: var(--text); }
+  .badge { color: #FFFFFF; }
+  .badge.good { background: var(--good); }
+  .badge.normal { background: var(--normal); color: var(--normal-text); }
+  .badge.caution { background: var(--caution); }
+  .spinning .emoji, .spinning .name { opacity: 0.7; }
+  .spinning .desc, .spinning .info { visibility: hidden; }
+
+  .actions { display: flex; gap: 12px; }
+  .actions button { flex: 1; min-width: 0; }
+  .again-btn { background: var(--card); color: var(--main); border: 2px solid var(--main); }
+  .again-btn:hover:not(:disabled) { background: var(--main-soft); }
+  .share-btn { background: var(--main); color: var(--on-main); }
+  .share-btn:hover:not(:disabled) { background: var(--main-dark); }
+  @media (max-width: 360px) { .actions { flex-direction: column; } }
+
+  /* 복사가 막힐 때 직접 복사할 수 있게 보여주는 칸 */
+  .copy-box {
+    width: 100%;
+    font-family: inherit;
+    font-size: 16px;
+    color: var(--text);
+    background: var(--card);
+    border: 2px dashed var(--main);
+    border-radius: 16px;
+    padding: 12px;
+    resize: none;
+  }
+
+  footer { text-align: center; font-size: 13px; color: var(--sub); }
+
+  .toast {
+    position: fixed;
+    left: 50%;
+    bottom: calc(140px + env(safe-area-inset-bottom, 0px));
+    z-index: 3;
+    transform: translateX(-50%) translateY(20px);
+    background: var(--text);
+    color: var(--bg);
+    padding: 12px 22px;
+    border-radius: 999px;
+    font-size: 15px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s, transform 0.25s;
+    white-space: nowrap;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* 폭죽 캔버스: 화면 전체 배경 */
+  #fireworks {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 0;
+  }
+  .wrap { position: relative; z-index: 1; }
+
+  /* 춤추는 음식 친구들: 화면 아래에 한 줄로 */
+  .dancers {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+    padding-left: max(8px, env(safe-area-inset-left, 0px));
+    padding-right: max(8px, env(safe-area-inset-right, 0px));
+    display: flex;
+    justify-content: center;
+    align-items: flex-end;
+    gap: 2px;
+    pointer-events: none;
+    z-index: 2;
+  }
+  .dancer {
+    width: clamp(44px, 12.5vw, 92px);
+    opacity: 0;
+    transform: translateY(140%);
+    transition: opacity 0.3s, transform 0.45s cubic-bezier(.3,1.6,.5,1);
+  }
+  .dancer.show { opacity: 1; transform: translateY(0); }
+  .dancer svg { display: block; width: 100%; height: auto; transform-origin: 50% 90%; overflow: visible; }
+  .dancer.show svg { animation: wiggle 0.45s ease-in-out infinite alternate; animation-delay: inherit; }
+  .dancer .arm-l { transform-origin: 28px 80px; animation: wave 0.3s ease-in-out infinite alternate; }
+  .dancer .arm-r { transform-origin: 112px 80px; animation: wave 0.3s ease-in-out infinite alternate-reverse; }
+  @keyframes wiggle {
+    from { transform: rotate(-12deg) translateY(0); }
+    to   { transform: rotate(12deg) translateY(-8px); }
+  }
+  @keyframes wave {
+    from { transform: rotate(-25deg); }
+    to   { transform: rotate(25deg); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    button, .toast, .dancer { transition: none; }
+    .dancer.show svg, .dancer .arm-l, .dancer .arm-r { animation: none; }
+  }
+</style>
+</head>
+<body>
+
+<canvas id="fireworks" aria-hidden="true"></canvas>
+
+<div class="dancers" id="dancers" aria-hidden="true"></div>
+
+<div class="wrap">
+  <header>
+    <h1>오늘 저녁 뭐 먹지? 🍽️</h1>
+    <p>고민은 버튼에게 맡기세요</p>
+  </header>
+
+  <button class="draw-btn" id="drawBtn">🎲 오늘 저녁 뽑기</button>
+
+  <section class="card" id="card" aria-live="polite">
+    <p class="guide">버튼을 눌러<br>오늘의 메뉴를 뽑아보세요!</p>
+  </section>
+
+  <div class="actions" id="actions" hidden>
+    <button class="again-btn" id="againBtn">🔄 다시 뽑기</button>
+    <button class="share-btn" id="shareBtn">📤 친구에게 공유하기</button>
+  </div>
+
+  <textarea class="copy-box" id="copyBox" rows="3" readonly hidden></textarea>
+
+  <footer>칼로리는 대략적인 참고용입니다 (1인분 기준)</footer>
+</div>
+
+<div class="toast" id="toast" role="status">복사됐어요!</div>
+
+<script>
+  /* 메뉴 목록: emoji, name, desc, kcal, health("good" / "normal" / "caution") */
+  const menus = [
+    // 한식
+    { emoji: "🍲", name: "김치찌개", desc: "칼칼한 국물에 밥 한 공기 뚝딱. 실패 없는 저녁이에요.", kcal: 550, health: "normal" },
+    { emoji: "🥘", name: "된장찌개", desc: "구수한 된장에 두부와 애호박 듬뿍. 속이 편안해요.", kcal: 450, health: "good" },
+    { emoji: "🍚", name: "비빔밥", desc: "여러 나물과 고추장을 쓱쓱. 채소를 골고루 먹을 수 있어요.", kcal: 600, health: "good" },
+    { emoji: "🥩", name: "제육볶음", desc: "매콤달콤 돼지고기에 상추쌈까지. 든든함 보장!", kcal: 750, health: "normal" },
+    { emoji: "🍖", name: "불고기", desc: "달짝지근한 양념 소고기. 남녀노소 모두의 최애 메뉴.", kcal: 650, health: "normal" },
+    { emoji: "🐟", name: "고등어구이", desc: "노릇하게 구운 생선에 오메가3까지 챙겨요.", kcal: 500, health: "good" },
+    { emoji: "🍜", name: "냉면", desc: "새콤하고 시원한 육수에 쫄깃한 면발.", kcal: 550, health: "normal" },
+    { emoji: "🍗", name: "삼계탕", desc: "닭 한 마리 통째로 푹 고아낸 보양식이에요.", kcal: 900, health: "good" },
+    { emoji: "🥓", name: "삼겹살", desc: "지글지글 구워 쌈 싸 먹는 저녁의 행복.", kcal: 1000, health: "caution" },
+    // 중식
+    { emoji: "🍝", name: "짜장면", desc: "달콤한 춘장 소스에 비벼 먹는 국민 배달 메뉴.", kcal: 800, health: "caution" },
+    { emoji: "🌶️", name: "짬뽕", desc: "얼큰한 해물 국물로 스트레스 날리기.", kcal: 700, health: "normal" },
+    { emoji: "🍤", name: "탕수육", desc: "바삭한 튀김에 새콤달콤 소스. 부먹? 찍먹?", kcal: 1100, health: "caution" },
+    { emoji: "🍳", name: "볶음밥", desc: "고슬고슬 볶은 밥에 짜장 소스 살짝.", kcal: 750, health: "normal" },
+    { emoji: "🌯", name: "마라탕", desc: "좋아하는 재료를 골라 넣는 얼얼한 매력.", kcal: 850, health: "caution" },
+    // 일식
+    { emoji: "🍣", name: "초밥", desc: "신선한 생선을 한입에. 가볍고 깔끔해요.", kcal: 550, health: "good" },
+    { emoji: "🍜", name: "라멘", desc: "진한 돈코츠 국물에 차슈 한 장 올려서.", kcal: 900, health: "caution" },
+    { emoji: "🍛", name: "카레라이스", desc: "향긋한 카레를 밥에 듬뿍. 채소도 함께 먹어요.", kcal: 700, health: "normal" },
+    { emoji: "🍱", name: "돈가스", desc: "바삭한 튀김옷 속 두툼한 돼지고기.", kcal: 950, health: "caution" },
+    { emoji: "🥢", name: "우동", desc: "따끈한 국물과 탱탱한 면발로 속을 달래요.", kcal: 500, health: "normal" },
+    { emoji: "🐟", name: "회덮밥", desc: "회와 채소를 초고추장에 비벼 상큼하게.", kcal: 550, health: "good" },
+    // 양식
+    { emoji: "🍕", name: "피자", desc: "치즈가 쭉~ 늘어나는 금요일 같은 메뉴.", kcal: 1100, health: "caution" },
+    { emoji: "🍝", name: "토마토 파스타", desc: "새콤한 토마토 소스로 가볍게 즐기는 파스타.", kcal: 650, health: "normal" },
+    { emoji: "🍔", name: "햄버거", desc: "두툼한 패티와 감자튀김의 완벽한 조합.", kcal: 1000, health: "caution" },
+    { emoji: "🥩", name: "스테이크", desc: "오늘은 나를 위한 특별한 저녁!", kcal: 800, health: "normal" },
+    { emoji: "🌮", name: "타코", desc: "또띠아에 고기와 채소를 싸 먹는 멕시코 맛.", kcal: 600, health: "normal" },
+    // 분식
+    { emoji: "🍢", name: "떡볶이", desc: "매콤달콤 쫀득쫀득. 스트레스엔 역시 떡볶이.", kcal: 700, health: "caution" },
+    { emoji: "🍙", name: "김밥", desc: "한 줄이면 든든. 간편하게 먹기 좋아요.", kcal: 450, health: "normal" },
+    { emoji: "🍜", name: "라면", desc: "가끔은 계란 하나 톡 넣은 라면이 최고죠.", kcal: 550, health: "caution" },
+    { emoji: "🥟", name: "만두", desc: "찐만두, 군만두 무엇이든 OK.", kcal: 500, health: "normal" },
+    { emoji: "🍗", name: "치킨", desc: "바삭한 후라이드 한 마리. 치느님은 진리!", kcal: 1500, health: "caution" },
+    // 샐러드·가벼운 식사
+    { emoji: "🥗", name: "닭가슴살 샐러드", desc: "단백질은 꽉, 칼로리는 가볍게.", kcal: 350, health: "good" },
+    { emoji: "🥙", name: "포케", desc: "연어, 채소, 현미밥을 한 그릇에 담은 건강식.", kcal: 500, health: "good" },
+    { emoji: "🥪", name: "샌드위치", desc: "통밀빵에 채소와 햄을 넉넉히.", kcal: 450, health: "good" },
+    { emoji: "🍠", name: "고구마와 계란", desc: "속 편하고 든든한 다이어트 저녁.", kcal: 300, health: "good" },
+    { emoji: "🥣", name: "전복죽", desc: "부드럽고 고소해서 피곤한 날 딱이에요.", kcal: 400, health: "good" }
+  ];
+
+  const healthText = { good: "건강해요 👍", normal: "보통이에요 🙂", caution: "가끔만 드세요 ⚠️" };
+
+  const drawBtn = document.getElementById("drawBtn");
+  const againBtn = document.getElementById("againBtn");
+  const shareBtn = document.getElementById("shareBtn");
+  const card = document.getElementById("card");
+  const actions = document.getElementById("actions");
+  const copyBox = document.getElementById("copyBox");
+  const toast = document.getElementById("toast");
+
+  let lastIndex = -1;
+  let current = null;
+
+  function randomIndex(exclude) {
+    let i;
+    do { i = Math.floor(Math.random() * menus.length); }
+    while (menus.length > 1 && i === exclude);
+    return i;
+  }
+
+  function showMenu(menu) {
+    card.innerHTML =
+      '<div class="emoji">' + menu.emoji + '</div>' +
+      '<div class="name">' + menu.name + '</div>' +
+      '<p class="desc">' + menu.desc + '</p>' +
+      '<div class="info">' +
+        '<span class="kcal">🔥 약 ' + menu.kcal.toLocaleString() + 'kcal</span>' +
+        '<span class="badge ' + menu.health + '">' + healthText[menu.health] + '</span>' +
+      '</div>';
+  }
+
+  function setBusy(busy) {
+    drawBtn.disabled = busy;
+    againBtn.disabled = busy;
+    shareBtn.disabled = busy;
+  }
+
+  function draw() {
+    setBusy(true);
+    copyBox.hidden = true;
+    card.classList.add("spinning");
+    let shown = -1;
+    const timer = setInterval(function () {
+      shown = randomIndex(shown);
+      showMenu(menus[shown]);
+    }, 80);
+    setTimeout(function () {
+      clearInterval(timer);
+      card.classList.remove("spinning");
+      const pick = randomIndex(lastIndex);
+      lastIndex = pick;
+      current = menus[pick];
+      showMenu(current);
+      actions.hidden = false;
+      setBusy(false);
+    }, 1000);
+  }
+
+  function showToast(message) {
+    toast.textContent = message;
+    toast.classList.add("show");
+    setTimeout(function () { toast.classList.remove("show"); }, 1800);
+  }
+
+  /* 공유 문구를 복사하고, 막히면 직접 복사할 수 있게 칸을 보여줌 */
+  function share() {
+    if (!current) return;
+    const text = "오늘 저녁은 " + current.emoji + " " + current.name + " 어때? 🍽️\n" + current.desc;
+    copyBox.value = text;
+
+    function fallback() {
+      copyBox.hidden = false;
+      copyBox.focus();
+      copyBox.select();
+      showToast("글자를 길게 눌러 복사해 주세요 📋");
+    }
+
+    try {
+      navigator.clipboard.writeText(text).then(function () {
+        copyBox.hidden = true;
+        showToast("복사됐어요! 친구에게 붙여넣기 해보세요 📋");
+      }, fallback);
+    } catch (e) {
+      fallback();
+    }
+  }
+
+  /* ===== 폭죽 ===== */
+  const canvas = document.getElementById("fireworks");
+  const ctx = canvas.getContext("2d");
+  const dancersBox = document.getElementById("dancers");
+  const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const colors = ["#FFD54F", "#FF7043", "#66BB6A", "#42A5F5", "#EC407A", "#AB47BC", "#FFFFFF"];
+  let particles = [];
+  let running = false;
+
+  function resize() {
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = window.innerWidth * dpr;
+    canvas.height = window.innerHeight * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+  window.addEventListener("resize", resize);
+  resize();
+
+  /* 폭죽 한 발: 입자 수와 속도를 키워 크게 터지도록 */
+  function burst(x, y) {
+    const color = colors[Math.floor(Math.random() * colors.length)];
+    const count = reduceMotion ? 30 : 120;
+    for (let i = 0; i < count; i++) {
+      const angle = (Math.PI * 2 * i) / count;
+      const speed = 3 + Math.random() * 6.5;
+      particles.push({
+        x: x, y: y,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed,
+        life: 1,
+        size: 3 + Math.random() * 2.5,
+        color: Math.random() < 0.3 ? colors[Math.floor(Math.random() * colors.length)] : color
+      });
+    }
+  }
+
+  function loop() {
+    ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+    particles.forEach(function (p) {
+      p.x += p.vx;
+      p.y += p.vy;
+      p.vy += 0.055;     // 중력
+      p.vx *= 0.985;
+      p.vy *= 0.985;
+      p.life -= 0.009;
+      ctx.globalAlpha = Math.max(p.life, 0);
+      ctx.fillStyle = p.color;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+      ctx.fill();
+    });
+    ctx.globalAlpha = 1;
+    particles = particles.filter(function (p) { return p.life > 0; });
+    if (particles.length) {
+      requestAnimationFrame(loop);
+    } else {
+      running = false;
+      ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+    }
+  }
+
+  /* ===== 춤추는 음식 친구들 ===== */
+  /* 주먹밥이 먼저 나오고, 춤추는 동안 또 뽑으면 아래 순서대로 한 명씩 합류해요 */
+  const friends = [
+    { name: "주먹밥", fy: 60, face: "#263238",
+      body: '<path d="M60 8 C72 8 112 80 108 98 C105 112 88 116 60 116 C32 116 15 112 12 98 C8 80 48 8 60 8 Z" fill="#FFFFFF" stroke="#B0BEC5" stroke-width="2"/><rect x="38" y="88" width="44" height="28" rx="4" fill="#263238"/>' },
+    { name: "치킨", fy: 70, face: "#3E2723",
+      body: '<rect x="52" y="4" width="16" height="30" rx="6" fill="#FFF8E1" stroke="#BCAAA4" stroke-width="2"/><circle cx="52" cy="8" r="7" fill="#FFF8E1" stroke="#BCAAA4" stroke-width="2"/><circle cx="68" cy="8" r="7" fill="#FFF8E1" stroke="#BCAAA4" stroke-width="2"/><ellipse cx="60" cy="78" rx="44" ry="42" fill="#C77B30"/><ellipse cx="42" cy="56" rx="12" ry="7" fill="#E9B26A"/>' },
+    { name: "피자", fy: 58, face: "#5D2C0C",
+      body: '<path d="M12 22 L108 22 L60 120 Z" fill="#FFCA28"/><rect x="8" y="10" width="104" height="18" rx="9" fill="#D7893A"/><circle cx="36" cy="36" r="6" fill="#E53935"/><circle cx="84" cy="36" r="6" fill="#E53935"/><circle cx="60" cy="98" r="6" fill="#E53935"/>' },
+    { name: "떡볶이", fy: 60, face: "#FFFFFF",
+      body: '<rect x="24" y="14" width="72" height="102" rx="36" fill="#E53935"/><rect x="30" y="22" width="9" height="36" rx="4.5" fill="#FF8A80"/><circle cx="78" cy="30" r="4" fill="#43A047"/><circle cx="42" cy="102" r="3" fill="#FFCDD2"/>' },
+    { name: "연어회", fy: 62, face: "#5D2C0C",
+      body: '<ellipse cx="60" cy="112" rx="50" ry="10" fill="#7CB342"/><rect x="10" y="30" width="100" height="80" rx="22" fill="#FF8A65"/><path d="M22 44 Q60 34 98 44 M18 96 Q60 86 102 96" stroke="#FFE0D6" stroke-width="5" fill="none" stroke-linecap="round"/>' },
+    { name: "순대", fy: 64, face: "#FFFFFF",
+      body: '<rect x="20" y="14" width="80" height="102" rx="40" fill="#5D3A4A"/><path d="M28 42 H92 M26 96 H94" stroke="#80566B" stroke-width="4" stroke-linecap="round"/><circle cx="44" cy="106" r="3" fill="#C9A3B5"/><circle cx="74" cy="28" r="3" fill="#C9A3B5"/>' },
+    { name: "비빔밥", fy: 84, face: "#FFFFFF",
+      body: '<path d="M14 64 Q60 18 106 64 Z" fill="#FFFFFF"/><ellipse cx="34" cy="56" rx="11" ry="5" fill="#43A047"/><ellipse cx="86" cy="56" rx="11" ry="5" fill="#E53935"/><ellipse cx="46" cy="42" rx="7" ry="4" fill="#FB8C00"/><ellipse cx="76" cy="42" rx="7" ry="4" fill="#8D6E63"/><circle cx="60" cy="44" r="11" fill="#FFFFFF" stroke="#ECEFF1" stroke-width="2"/><circle cx="60" cy="46" r="5.5" fill="#FFB300"/><path d="M8 62 H112 Q108 116 60 118 Q12 116 8 62 Z" fill="#6D4C41"/><rect x="40" y="114" width="40" height="8" rx="3" fill="#4E342E"/>' }
+  ];
+
+  /* 팔·다리·얼굴은 모두 같은 모양을 쓰고, 몸통만 캐릭터마다 달라요 */
+  function friendSvg(f) {
+    const y = f.fy;
+    return '<svg viewBox="0 0 140 136" xmlns="http://www.w3.org/2000/svg">' +
+      '<path class="arm-l" d="M28 80 L4 58" stroke="#5D4037" stroke-width="6" stroke-linecap="round" fill="none"/>' +
+      '<path class="arm-r" d="M112 80 L136 58" stroke="#5D4037" stroke-width="6" stroke-linecap="round" fill="none"/>' +
+      '<path d="M58 110 L52 132 M82 110 L88 132" stroke="#5D4037" stroke-width="6" stroke-linecap="round" fill="none"/>' +
+      '<g transform="translate(10,0)">' + f.body +
+        '<circle cx="50" cy="' + y + '" r="5" fill="' + f.face + '"/>' +
+        '<circle cx="70" cy="' + y + '" r="5" fill="' + f.face + '"/>' +
+        '<circle cx="40" cy="' + (y + 12) + '" r="5.5" fill="#F8BBD0" opacity="0.9"/>' +
+        '<circle cx="80" cy="' + (y + 12) + '" r="5.5" fill="#F8BBD0" opacity="0.9"/>' +
+        '<path d="M52 ' + (y + 10) + ' Q60 ' + (y + 20) + ' 68 ' + (y + 10) + '" stroke="' + f.face + '" stroke-width="3" stroke-linecap="round" fill="none"/>' +
+      '</g></svg>';
+  }
+
+  let nextFriend = 0;      // 다음에 나올 친구 번호
+  let danceTimer = null;   // 5초 뒤 퇴장 타이머
+  let clearTimer = null;
+
+  function addFriend() {
+    if (nextFriend >= friends.length) return;  // 7명 모두 나왔으면 그대로 춤만 계속
+    const el = document.createElement("div");
+    el.className = "dancer";
+    el.style.animationDelay = (-Math.random() * 0.45).toFixed(2) + "s";
+    el.innerHTML = friendSvg(friends[nextFriend]);
+    dancersBox.appendChild(el);
+    nextFriend++;
+    requestAnimationFrame(function () {
+      requestAnimationFrame(function () { el.classList.add("show"); });
+    });
+  }
+
+  function startDance() {
+    // 퇴장 중이었다면 바로 정리하고 처음부터
+    if (clearTimer) {
+      clearTimeout(clearTimer);
+      clearTimer = null;
+      dancersBox.innerHTML = "";
+      nextFriend = 0;
+    }
+    addFriend();
+    // 마지막으로 누른 뒤 5초 동안 춤추고 모두 퇴장
+    clearTimeout(danceTimer);
+    danceTimer = setTimeout(function () {
+      dancersBox.querySelectorAll(".dancer").forEach(function (d) { d.classList.remove("show"); });
+      clearTimer = setTimeout(function () {
+        dancersBox.innerHTML = "";
+        nextFriend = 0;
+        clearTimer = null;
+      }, 500);
+    }, 5000);
+  }
+
+  function celebrate() {
+    const w = window.innerWidth, h = window.innerHeight;
+    const shots = reduceMotion ? 1 : 6;
+    for (let i = 0; i < shots; i++) {
+      setTimeout(function () {
+        burst(w * (0.12 + Math.random() * 0.76), h * (0.12 + Math.random() * 0.4));
+        if (!running) { running = true; requestAnimationFrame(loop); }
+      }, i * 220);
+    }
+    startDance();
+  }
+
+  function drawWithParty() {
+    draw();
+    celebrate();
+  }
+
+  drawBtn.addEventListener("click", drawWithParty);
+  againBtn.addEventListener("click", drawWithParty);
+  shareBtn.addEventListener("click", share);
+</script>
+
+</body>
+</html>
